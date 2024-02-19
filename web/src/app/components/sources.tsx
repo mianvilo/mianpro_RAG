@@ -29,7 +29,7 @@ const SourceItem: FC<{ source: Source; index: number }> = ({
           <img
             className="h-3 w-3"
             alt={domain}
-            src={`https://www.google.com/s2/favicons?domain=${domain}&sz=${16}`}
+            src={`https://ap.mianpro.top/API/favicons.php?domain=${domain}&sz=${16}`}
           />
         </div>
       </div>
@@ -42,7 +42,7 @@ export const Sources: FC<{ sources: Source[] }> = ({ sources }) => {
     <Wrapper
       title={
         <>
-          <BookText></BookText> Sources
+          <BookText></BookText> 参考资料
         </>
       }
       content={
