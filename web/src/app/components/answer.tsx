@@ -18,7 +18,7 @@ export const Answer: FC<{ markdown: string; sources: Source[] }> = ({
     <Wrapper
       title={
         <>
-          <BookOpenText></BookOpenText> Answer
+          <BookOpenText></BookOpenText> Ai总结
         </>
       }
       content={
@@ -82,7 +82,7 @@ export const Answer: FC<{ markdown: string; sources: Source[] }> = ({
                               <img
                                 className="h-3 w-3"
                                 alt={source.url}
-                                src={`https://www.google.com/s2/favicons?domain=${source.url}&sz=${16}`}
+                                src={`https://ap.mianpro.top/API/favicons.php?domain=${source.url}&sz=${16}`}
                               />
                             </div>
                           </div>
