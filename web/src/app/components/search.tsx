@@ -27,7 +27,7 @@ export const Search: FC = () => {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           autoFocus
-          placeholder="Ask SearchRAG anything ..."
+          placeholder="搜索一下，你就知道"
           className="px-2 pr-6 w-full rounded-md flex-1 outline-none bg-white"
         />
         <button
