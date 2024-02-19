@@ -26,7 +26,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Search engine related. You don't really need to change this.
 BING_SEARCH_V7_ENDPOINT = "https://api.bing.microsoft.com/v7.0/search"
-BING_MKT = "en-US"
+BING_MKT = "zh-CN"
 GOOGLE_SEARCH_ENDPOINT = "https://customsearch.googleapis.com/customsearch/v1"
 SERPER_SEARCH_ENDPOINT = "https://google.serper.dev/search"
 SEARCHAPI_SEARCH_ENDPOINT = "https://www.searchapi.io/api/v1/search"
@@ -49,7 +49,7 @@ _default_query = "Who said 'live long and prosper'?"
 # behave differently, and we haven't tuned the prompt to make it optimal - this
 # is left to you, application creators, as an open problem.
 _rag_query_text = """
-You are a large language AI assistant built by Lepton AI. You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
+You are a large language AI assistant built by Mianrpo AI. You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
 
 Your answer must be correct, accurate and written by an expert using an unbiased and professional tone. Please limit to 1024 tokens. Do not give any information that is not related to the question, and do not repeat. Say "information is missing on" followed by the related topic, if the given context do not provide sufficient information.
 
@@ -59,15 +59,13 @@ Here are the set of contexts:
 
 {context}
 
-Remember, don't blindly repeat the contexts verbatim. And here is the user question:
+Remember, don't blindly repeat the contexts verbatim. Please always reply in Chinese. And here is the user question:
 """
 
 # A set of stop words to use - this is not a complete set, and you may want to
 # add more given your observation.
 stop_words = [
     "<|im_end|>",
-    "[End]",
-    "[end]",
     "\nReferences:\n",
     "\nSources:\n",
     "End.",
@@ -90,7 +88,7 @@ Here are the contexts of the question:
 
 {context}
 
-Remember, based on the original question and related contexts, suggest three such further questions. Do NOT repeat the original question. Each related question should be no longer than 20 words. Here is the original question:
+Remember, based on the original question and related contexts, suggest three such further questions. Do NOT repeat the original question. Each related question should be no longer than 20 words. Please always reply in Chinese. Here is the original question:
 """
 
 
@@ -327,8 +325,8 @@ def search_with_searchapi(query: str, subscription_key: str):
 
 def new_async_client(_app):
     return AsyncOpenAI(
-        api_key=os.environ["OPENAI_API_KEY"],
-        base_url=os.environ["OPENAI_BASE_URL"],
+        api_key="OPENAI_API_KEY",
+        base_url="OPENAI_BASE_URL",
         http_client=_app.ctx.http_session,
     )
 
@@ -338,7 +336,7 @@ async def server_init(_app, loop):
     """
     Initializes global configs.
     """
-    _app.ctx.backend = os.environ["BACKEND"].upper()
+    _app.ctx.backend = "BING"
     # if _app.ctx.backend == "LEPTON":
     #     from leptonai import Client
 
@@ -349,33 +347,33 @@ async def server_init(_app, loop):
     #         timeout=httpx.Timeout(connect=10, read=120, write=120, pool=10),
     #     )
     if _app.ctx.backend == "BING":
-        _app.ctx.search_api_key = os.environ["BING_SEARCH_V7_SUBSCRIPTION_KEY"]
+        _app.ctx.search_api_key = "BING_SEARCH_V7_SUBSCRIPTION_KEY"
         _app.ctx.search_function = lambda query: search_with_bing(
             query,
             _app.ctx.search_api_key,
         )
     elif _app.ctx.backend == "GOOGLE":
-        _app.ctx.search_api_key = os.environ["GOOGLE_SEARCH_API_KEY"]
+        _app.ctx.search_api_key = "GOOGLE_SEARCH_API_KEY"
         _app.ctx.search_function = lambda query: search_with_google(
             query,
             _app.ctx.search_api_key,
             os.environ["GOOGLE_SEARCH_CX"],
         )
     elif _app.ctx.backend == "SERPER":
-        _app.ctx.search_api_key = os.environ["SERPER_SEARCH_API_KEY"]
+        _app.ctx.search_api_key = "SERPER_SEARCH_API_KEY"
         _app.ctx.search_function = lambda query: search_with_serper(
             query,
             _app.ctx.search_api_key,
         )
     elif _app.ctx.backend == "SEARCHAPI":
-        _app.ctx.search_api_key = os.environ["SEARCHAPI_API_KEY"]
+        _app.ctx.search_api_key = "SEARCHAPI_API_KEY"
         _app.ctx.search_function = lambda query: search_with_searchapi(
             query,
             _app.ctx.search_api_key,
         )
     else:
         raise RuntimeError("Backend must be BING, GOOGLE, SERPER or SEARCHAPI.")
-    _app.ctx.model = os.environ["LLM_MODEL"]
+    _app.ctx.model = "gpt-4-1106-preview"
     _app.ctx.handler_max_concurrency = 16
     # An executor to carry out async tasks, such as uploading to KV.
     _app.ctx.executor = concurrent.futures.ThreadPoolExecutor(
@@ -385,9 +383,7 @@ async def server_init(_app, loop):
     logger.info("Creating KV. May take a while for the first time.")
     _app.ctx.kv = KVWrapper(os.getenv("KV_NAME") or "search.db")
     # whether we should generate related questions.
-    _app.ctx.should_do_related_questions = bool(
-        os.environ["RELATED_QUESTIONS"] in ("1", "yes", "true")
-    )
+    _app.ctx.should_do_related_questions = "true"
     # Create httpx Session
     _app.ctx.http_session = httpx.AsyncClient(
         timeout=httpx.Timeout(connect=10, read=120, write=120, pool=10),
