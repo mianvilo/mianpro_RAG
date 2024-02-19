@@ -37,9 +37,7 @@ export const Result: FC<{ query: string; rid: string }> = ({ query, rid }) => {
         <div className="absolute inset-4 flex items-center justify-center bg-white/40 backdrop-blur-sm">
           <div className="p-4 bg-white shadow-2xl rounded text-blue-500 font-medium flex gap-4">
             <Annoyed></Annoyed>
-            {error === 429
-              ? "Sorry, you have made too many requests recently, try again later."
-              : "Sorry, we might be overloaded, try again later."}
+            {error === 429 ? "请求失败，请重试！" : "服务过载，请重试！"}
           </div>
         </div>
       )}
