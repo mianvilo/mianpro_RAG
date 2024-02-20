@@ -9,7 +9,7 @@ export default function Home() {
   const [hotSearches, setHotSearches] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("https://api.920pdd.com/API/60s/zh.php")
+    fetch("https://admin.sandunppt.com/nws_api.php")
       .then((response) => response.text())
       .then((text) => {
         const titles = text
