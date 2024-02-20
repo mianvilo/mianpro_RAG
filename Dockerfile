@@ -7,7 +7,7 @@ RUN sed -ri 's#URIs: http://deb.debian.org#URIs: http://mirrors.tuna.tsinghua.ed
 RUN apt-get update && apt-get install -y git
 
 RUN apt-get update -y && apt-get install -y python3-venv && \
-	git clone https://github.com/sviphaige/mianpro-search.git --depth=1 --branch=main /app && \
+	git clone https://github.com/mianvilo/mianpro-search_RAG.git --depth=1 --branch=main /app && \
 	cd /app && \
 	python3 -m venv venv && bash -c "source venv/bin/activate && pip3 install -r requirements.txt" && \
 	cd web && npm i && npm run build && rm -rf node_modules .next && npm cache clean --force
