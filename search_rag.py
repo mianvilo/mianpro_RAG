@@ -49,7 +49,7 @@ _default_query = "Who said 'live long and prosper'?"
 # behave differently, and we haven't tuned the prompt to make it optimal - this
 # is left to you, application creators, as an open problem.
 _rag_query_text = """
-You are a large language AI assistant built by Mianrpo AI. You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
+You are a large-scale Chinese language artificial intelligence assistant built by Mianrpo AI in China. You will receive a user question, please write a clean, concise, and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
 
 Your answer must be correct, accurate and written by an expert using an unbiased and professional tone. Please limit to 1024 tokens. Do not give any information that is not related to the question, and do not repeat. Say "information is missing on" followed by the related topic, if the given context do not provide sufficient information.
 
@@ -59,7 +59,7 @@ Here are the set of contexts:
 
 {context}
 
-Remember, don't blindly repeat the contexts verbatim. Please always reply in Chinese. And here is the user question:
+Remember, don't blindly repeat the contexts verbatim. And here is the user question:
 """
 
 # A set of stop words to use - this is not a complete set, and you may want to
@@ -82,15 +82,8 @@ stop_words = [
 # questions. This is not ideal, but it is a good tradeoff between response time
 # and quality.
 _more_questions_prompt = """
-You are a helpful assistant that helps the user to ask related questions, based on user's original question and the related contexts. Please identify worthwhile topics that can be follow-ups, and write questions no longer than 20 words each. Please make sure that specifics, like events, names, locations, are included in follow up questions so they can be asked standalone. For example, if the original question asks about "the Manhattan project", in the follow up question, do not just say "the project", but use the full name "the Manhattan project". Your related questions must be in the same language as the original question.
-
-Here are the contexts of the question:
-
-{context}
-
-Remember, based on the original question and related contexts, suggest three such further questions. Do NOT repeat the original question. Each related question should be no longer than 20 words. Please always reply in Chinese. Here is the original question:
+你是一个相关问题搜索词生成助手sandun，可以根据用户的问题给出3～5个相关性问题词。请确定可以跟进的有价值的话题，并写出每个问题不超过20个单词。请确保后续问题中包括事件、名称、地点等细节，以便独立提问。例如，如果最初的问题询问“曼哈顿项目”，那么在后续问题中，不要只说“项目”，而是使用全名“曼哈顿项目。你的回答格式必须严格为[1：问题1\n2:问题2\n3:问题3\n4:问题4\n5:相关问题5]不要重复原来的问题，必须按照我给的示例格式输出！！每个相关问题不应超过20个单词。下面是用户的问题：
 """
-
 
 class KVWrapper(object):
     def __init__(self, kv_name):
@@ -325,8 +318,8 @@ def search_with_searchapi(query: str, subscription_key: str):
 
 def new_async_client(_app):
     return AsyncOpenAI(
-        api_key="OPENAI_API_KEY",
-        base_url="OPENAI_BASE_URL",
+        api_key="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",
+        base_url="https://api.ohmygpt.com/v1",
         http_client=_app.ctx.http_session,
     )
 
@@ -336,7 +329,7 @@ async def server_init(_app, loop):
     """
     Initializes global configs.
     """
-    _app.ctx.backend = "BING"
+    _app.ctx.backend = "GOOGLE"
     # if _app.ctx.backend == "LEPTON":
     #     from leptonai import Client
 
@@ -347,17 +340,17 @@ async def server_init(_app, loop):
     #         timeout=httpx.Timeout(connect=10, read=120, write=120, pool=10),
     #     )
     if _app.ctx.backend == "BING":
-        _app.ctx.search_api_key = "BING_SEARCH_V7_SUBSCRIPTION_KEY"
+        _app.ctx.search_api_key = "4b1111111111111111"
         _app.ctx.search_function = lambda query: search_with_bing(
             query,
             _app.ctx.search_api_key,
         )
     elif _app.ctx.backend == "GOOGLE":
-        _app.ctx.search_api_key = "GOOGLE_SEARCH_API_KEY"
+        _app.ctx.search_api_key = "AIzaSyDcLZqhOLX3Z5dRTJbwAOt_mSqpzYHvhH4"
         _app.ctx.search_function = lambda query: search_with_google(
             query,
             _app.ctx.search_api_key,
-            os.environ["GOOGLE_SEARCH_CX"],
+            "27d2b2f66b4984dee"
         )
     elif _app.ctx.backend == "SERPER":
         _app.ctx.search_api_key = "SERPER_SEARCH_API_KEY"
@@ -373,7 +366,7 @@ async def server_init(_app, loop):
         )
     else:
         raise RuntimeError("Backend must be BING, GOOGLE, SERPER or SEARCHAPI.")
-    _app.ctx.model = "gpt-4-1106-preview"
+    _app.ctx.model = "gpt-3.5-turbo-1106"
     _app.ctx.handler_max_concurrency = 16
     # An executor to carry out async tasks, such as uploading to KV.
     _app.ctx.executor = concurrent.futures.ThreadPoolExecutor(
@@ -383,7 +376,7 @@ async def server_init(_app, loop):
     logger.info("Creating KV. May take a while for the first time.")
     _app.ctx.kv = KVWrapper(os.getenv("KV_NAME") or "search.db")
     # whether we should generate related questions.
-    _app.ctx.should_do_related_questions = "true"
+    _app.ctx.should_do_related_questions = "1"
     # Create httpx Session
     _app.ctx.http_session = httpx.AsyncClient(
         timeout=httpx.Timeout(connect=10, read=120, write=120, pool=10),
@@ -392,61 +385,34 @@ async def server_init(_app, loop):
 
 async def get_related_questions(_app, query, contexts):
     """
-    Gets related questions based on the query and context.
+    Gets related questions based on the query using the gpt-3.5-turbo model.
     """
-
-    def ask_related_questions(
-        questions: Annotated[
-            List[str],
-            [
-                (
-                    "question",
-                    Annotated[
-                        str,
-                        "related question to the original question and context.",
-                    ],
-                )
-            ],
-        ],
-    ):
-        """
-        ask further questions that are related to the input and output.
-        """
-        pass
 
     try:
         openai_client = new_async_client(_app)
-        response = await openai_client.chat.completions.create(
-            model=_app.ctx.model,
+        llm_response = await openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[
-                {
-                    "role": "system",
-                    "content": _more_questions_prompt.format(
-                        context="\n\n".join([c["snippet"] for c in contexts])
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": query,
-                },
+                {"role": "system", "content": _more_questions_prompt},
+                {"role": "user", "content": query},
             ],
-            tools=[
-                {
-                    "type": "function",
-                    # "function": tool.get_tools_spec(ask_related_questions),
-                }
-            ],
-            max_tokens=512,
+            max_tokens=1024,
+            stop=stop_words,
+            temperature=0.9,
         )
-        related = response.choices[0].message.tool_calls[0].function.arguments
-        if isinstance(related, str):
-            related = json.loads(related)
-        logger.trace(f"Related questions: {related}")
-        return related["questions"][:5]
+        content = llm_response.choices[0].message.content
+        questions = []
+        for line in content.split('\n'):
+            if line.strip().startswith('1:') or line.strip().startswith('2:') or line.strip().startswith('3:'):
+                question_text = line.split(':', 1)[1].strip()
+                questions.append({"question": question_text})
+        if questions:
+            return questions[:5]
+        else:
+            return []
     except Exception as e:
-        # For any exceptions, we will just return an empty list.
         logger.error(
-            "encountered error while generating related questions:"
+            "Encountered error while generating related questions:"
             f" {e}\n{traceback.format_exc()}"
         )
         return []
@@ -587,7 +553,6 @@ async def query_function(request: sanic.Request):
         return sanic.json({"message": "Internal server error."}, 503)
 
     response = await request.respond(content_type="text/html")
-    # First, stream and yield the results.
     all_yielded_results = []
 
     async for result in _raw_stream_response(
@@ -595,9 +560,6 @@ async def query_function(request: sanic.Request):
     ):
         all_yielded_results.append(result)
         await response.send(result)
-
-    # Second, upload to KV. Note that if uploading to KV fails, we will silently
-    # ignore it, because we don't want to affect the user experience.
     await response.eof()
     _ = _app.ctx.executor.submit(
         _app.ctx.kv.put, search_uuid, "".join(all_yielded_results)
