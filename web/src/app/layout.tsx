@@ -6,7 +6,7 @@ import { ReactNode } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Mianpro 智能搜索",
+  title: "三顿搜索",
   description: "Ai改变你的生活.",
 };
 
