@@ -49,7 +49,7 @@ _default_query = "Who said 'live long and prosper'?"
 # behave differently, and we haven't tuned the prompt to make it optimal - this
 # is left to you, application creators, as an open problem.
 _rag_query_text = """
-You are a large-scale Chinese language artificial intelligence assistant built by Mianrpo AI in China. You will receive a user question, please write a clean, concise, and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
+You are a large language AI assistant built by Lepton AI. You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
 
 Your answer must be correct, accurate and written by an expert using an unbiased and professional tone. Please limit to 1024 tokens. Do not give any information that is not related to the question, and do not repeat. Say "information is missing on" followed by the related topic, if the given context do not provide sufficient information.
 
@@ -66,6 +66,8 @@ Remember, don't blindly repeat the contexts verbatim. And here is the user quest
 # add more given your observation.
 stop_words = [
     "<|im_end|>",
+    "[End]",
+    "[end]",
     "\nReferences:\n",
     "\nSources:\n",
     "End.",
@@ -82,8 +84,8 @@ stop_words = [
 # questions. This is not ideal, but it is a good tradeoff between response time
 # and quality.
 _more_questions_prompt = """
-你是一个相关问题搜索词生成助手sandun，可以根据用户的问题给出3～5个相关性问题词。请确定可以跟进的有价值的话题，并写出每个问题不超过20个单词。请确保后续问题中包括事件、名称、地点等细节，以便独立提问。例如，如果最初的问题询问“曼哈顿项目”，那么在后续问题中，不要只说“项目”，而是使用全名“曼哈顿项目。你的回答格式必须严格为[1：问题1\n2:问题2\n3:问题3\n4:问题4\n5:相关问题5]不要重复原来的问题，必须按照我给的示例格式输出！！每个相关问题不应超过20个单词。下面是用户的问题：
-"""
+You are a search term generation assistant for related questions, and can provide 3-5 related question words based on the user's question. Please identify valuable topics to follow up on and write no more than 20 words for each question. Please ensure that the follow-up questions include details such as the event, name, location, etc., so that you can ask independently. For example, if the initial question asks about the "Manhattan Project", then in subsequent questions, don't just say "Project", but use the full name "Manhattan Project". Your answer format must be strictly [1: Question 1 \ n2: Question 2 \ n3: Question 3 \ n4: Question 4 \ n5: Related Question 5] Don't repeat the original question, you must output it in the format I provided!! Each related question should not exceed 20 words. Here are the user's questions:"""
+
 
 class KVWrapper(object):
     def __init__(self, kv_name):
@@ -318,8 +320,8 @@ def search_with_searchapi(query: str, subscription_key: str):
 
 def new_async_client(_app):
     return AsyncOpenAI(
-        api_key="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",
-        base_url="https://api.ohmygpt.com/v1",
+        api_key=os.environ["OPENAI_API_KEY"],
+        base_url=os.environ["OPENAI_BASE_URL"],
         http_client=_app.ctx.http_session,
     )
 
@@ -329,7 +331,7 @@ async def server_init(_app, loop):
     """
     Initializes global configs.
     """
-    _app.ctx.backend = "GOOGLE"
+    _app.ctx.backend = os.environ["BACKEND"].upper()
     # if _app.ctx.backend == "LEPTON":
     #     from leptonai import Client
 
@@ -340,33 +342,33 @@ async def server_init(_app, loop):
     #         timeout=httpx.Timeout(connect=10, read=120, write=120, pool=10),
     #     )
     if _app.ctx.backend == "BING":
-        _app.ctx.search_api_key = "4b1111111111111111"
+        _app.ctx.search_api_key = os.environ["BING_SEARCH_V7_SUBSCRIPTION_KEY"]
         _app.ctx.search_function = lambda query: search_with_bing(
             query,
             _app.ctx.search_api_key,
         )
     elif _app.ctx.backend == "GOOGLE":
-        _app.ctx.search_api_key = "AIzaSyDcLZqhOLX3Z5dRTJbwAOt_mSqpzYHvhH4"
+        _app.ctx.search_api_key = os.environ["GOOGLE_SEARCH_API_KEY"]
         _app.ctx.search_function = lambda query: search_with_google(
             query,
             _app.ctx.search_api_key,
-            "27d2b2f66b4984dee"
+            os.environ["GOOGLE_SEARCH_CX"],
         )
     elif _app.ctx.backend == "SERPER":
-        _app.ctx.search_api_key = "SERPER_SEARCH_API_KEY"
+        _app.ctx.search_api_key = os.environ["SERPER_SEARCH_API_KEY"]
         _app.ctx.search_function = lambda query: search_with_serper(
             query,
             _app.ctx.search_api_key,
         )
     elif _app.ctx.backend == "SEARCHAPI":
-        _app.ctx.search_api_key = "SEARCHAPI_API_KEY"
+        _app.ctx.search_api_key = os.environ["SEARCHAPI_API_KEY"]
         _app.ctx.search_function = lambda query: search_with_searchapi(
             query,
             _app.ctx.search_api_key,
         )
     else:
         raise RuntimeError("Backend must be BING, GOOGLE, SERPER or SEARCHAPI.")
-    _app.ctx.model = "gpt-3.5-turbo-1106"
+    _app.ctx.model = os.environ["LLM_MODEL"]
     _app.ctx.handler_max_concurrency = 16
     # An executor to carry out async tasks, such as uploading to KV.
     _app.ctx.executor = concurrent.futures.ThreadPoolExecutor(
@@ -376,7 +378,9 @@ async def server_init(_app, loop):
     logger.info("Creating KV. May take a while for the first time.")
     _app.ctx.kv = KVWrapper(os.getenv("KV_NAME") or "search.db")
     # whether we should generate related questions.
-    _app.ctx.should_do_related_questions = "1"
+    _app.ctx.should_do_related_questions = bool(
+        os.environ["RELATED_QUESTIONS"] in ("1", "yes", "true")
+    )
     # Create httpx Session
     _app.ctx.http_session = httpx.AsyncClient(
         timeout=httpx.Timeout(connect=10, read=120, write=120, pool=10),
@@ -553,6 +557,7 @@ async def query_function(request: sanic.Request):
         return sanic.json({"message": "Internal server error."}, 503)
 
     response = await request.respond(content_type="text/html")
+    # First, stream and yield the results.
     all_yielded_results = []
 
     async for result in _raw_stream_response(
@@ -560,6 +565,9 @@ async def query_function(request: sanic.Request):
     ):
         all_yielded_results.append(result)
         await response.send(result)
+
+    # Second, upload to KV. Note that if uploading to KV fails, we will silently
+    # ignore it, because we don't want to affect the user experience.
     await response.eof()
     _ = _app.ctx.executor.submit(
         _app.ctx.kv.put, search_uuid, "".join(all_yielded_results)
