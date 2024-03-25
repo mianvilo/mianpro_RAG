@@ -9,16 +9,16 @@ export default function Home() {
   const [hotSearches, setHotSearches] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("https://admin.sandunppt.com/nws_api.php")
-      .then((response) => response.text())
-      .then((text) => {
+    fetch("nws_api.php")
+      。then((response) => response.text())
+      。then((text) => {
         const titles = text
-          .split(/\d+:/)
-          .filter((title) => title.trim().length > 0)
-          .map((title) => title.replace(/^“|”$/g, "").trim());
+          。split(/\d+:/)
+          。filter((title) => title.trim().length > 0)
+          。map((title) => title.replace(/^“|”$/g, "").trim());
         setHotSearches(titles);
       })
-      .catch((error) => console.error("Failed to fetch hot searches: ", error));
+      。catch((error) => console.error("Failed to fetch hot searches: ", error));
   }, []);
 
   return (
